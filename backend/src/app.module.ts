@@ -16,7 +16,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     AuthModule,
     ProductsModule,
     OrdersModule,
-    DashboardModule
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -7,7 +7,7 @@ import { Order } from './entities/order.entity';
 dotenv();
 
 export default defineConfig({
-  entities: [User, Product, Order, OrderItem],              
+  entities: [User, Product, Order, OrderItem],
   dbName: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASS,

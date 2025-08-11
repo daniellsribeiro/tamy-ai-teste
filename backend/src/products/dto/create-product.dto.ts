@@ -4,5 +4,5 @@ export type CreateProductDto = {
   name: string;
   price: string;
   category: Categoria;
-  stock: number;    
+  stock: number;
 };

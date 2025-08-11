@@ -14,7 +14,10 @@ export class AuthService {
   async register(dto: RegisterDto) {
     const user = await this.users.create(dto.name, dto.email, dto.password);
     const accessToken = this.signToken(user.id, user.email);
-    return { accessToken, user: { id: user.id, name: user.name, email: user.email } };
+    return {
+      accessToken,
+      user: { id: user.id, name: user.name, email: user.email },
+    };
   }
 
   async login(dto: LoginDto) {
@@ -25,7 +28,10 @@ export class AuthService {
     if (!ok) throw new UnauthorizedException('Credenciais inválidas');
 
     const accessToken = this.signToken(user.id, user.email);
-    return { accessToken, user: { id: user.id, name: user.name, email: user.email } };
+    return {
+      accessToken,
+      user: { id: user.id, name: user.name, email: user.email },
+    };
   }
 
   private signToken(sub: number, email: string) {

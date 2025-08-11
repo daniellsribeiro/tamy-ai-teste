@@ -1,11 +1,14 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { EntityRepository, EntityManager } from '@mikro-orm/postgresql';
+import { EntityRepository } from '@mikro-orm/postgresql';
 import { Order } from '../entities/order.entity';
 import { OrderItem } from '../entities/order-item.entity';
 import { Product } from '../entities/product.entity';
 import type { CreateOrderDto } from './dto/create-order.dto';
-import type { UpdateOrderDto } from './dto/update-order.dto';
 
 function toCents(price: string) {
   return Math.round(Number(String(price).replace(',', '.')) * 100);
@@ -17,17 +20,20 @@ function centsToMoney(cents: number) {
 @Injectable()
 export class OrdersService {
   constructor(
-    @InjectRepository(Order) private readonly orderRepo: EntityRepository<Order>,
-    @InjectRepository(OrderItem) private readonly itemRepo: EntityRepository<OrderItem>,
-    @InjectRepository(Product) private readonly prodRepo: EntityRepository<Product>,
-  ) { }
+    @InjectRepository(Order)
+    private readonly orderRepo: EntityRepository<Order>,
+    @InjectRepository(OrderItem)
+    private readonly itemRepo: EntityRepository<OrderItem>,
+    @InjectRepository(Product)
+    private readonly prodRepo: EntityRepository<Product>,
+  ) {}
 
   async create(dto: CreateOrderDto) {
     if (!dto.items?.length) throw new BadRequestException('Pedido sem itens');
 
-    const ids = dto.items.map(i => i.productId);
+    const ids = dto.items.map((i) => i.productId);
     const products = await this.prodRepo.find({ id: { $in: ids } });
-    const map = new Map(products.map(p => [p.id, p]));
+    const map = new Map(products.map((p) => [p.id, p]));
 
     const now = new Date();
     let totalCents = 0;
@@ -42,11 +48,15 @@ export class OrdersService {
 
     for (const it of dto.items) {
       const prod = map.get(it.productId);
-      if (!prod) throw new BadRequestException(`Produto ${it.productId} não encontrado`);
-      if (it.quantity <= 0) throw new BadRequestException('Quantidade inválida');
+      if (!prod)
+        throw new BadRequestException(`Produto ${it.productId} não encontrado`);
+      if (it.quantity <= 0)
+        throw new BadRequestException('Quantidade inválida');
 
       if (prod.stock < it.quantity) {
-        throw new BadRequestException(`Estoque insuficiente de ${prod.name} (disp: ${prod.stock})`);
+        throw new BadRequestException(
+          `Estoque insuficiente de ${prod.name} (disp: ${prod.stock})`,
+        );
       }
       prod.stock -= it.quantity;
 
@@ -92,12 +102,20 @@ export class OrdersService {
     return order;
   }
 
- async update(id: number, dto: { status?: 'aberto'|'pago'|'cancelado'; paymentMethod?: 'pix'|'cartao'|'dinheiro' }) {
+  async update(
+    id: number,
+    dto: {
+      status?: 'aberto' | 'pago' | 'cancelado';
+      paymentMethod?: 'pix' | 'cartao' | 'dinheiro';
+    },
+  ) {
     const em = this.orderRepo.getEntityManager();
 
     return em.transactional(async (tem) => {
       // carregar pedido + itens + produto (precisamos do stock)
-      const order = await tem.findOne(Order, id, { populate: ['items', 'items.product'] });
+      const order = await tem.findOne(Order, id, {
+        populate: ['items', 'items.product'],
+      });
       if (!order) throw new NotFoundException('Order not found');
 
       const prev = order.status;

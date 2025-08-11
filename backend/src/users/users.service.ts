@@ -1,4 +1,8 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityRepository } from '@mikro-orm/postgresql';
 import { User } from '../entities/user.entity';

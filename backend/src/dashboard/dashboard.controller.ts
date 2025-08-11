@@ -5,11 +5,14 @@ import { EntityRepository } from '@mikro-orm/postgresql';
 import { FilterQuery } from '@mikro-orm/core';
 import { Order } from '../entities/order.entity';
 
-const toCents = (s: string) => Math.round(Number(String(s).replace(',', '.')) * 100);
+const toCents = (s: string) =>
+  Math.round(Number(String(s).replace(',', '.')) * 100);
 const centsToMoney = (n: number) => (n / 100).toFixed(2);
 
-const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
-const endOfDay   = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0, 0);
+const startOfDay = (d: Date) =>
+  new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+const endOfDay = (d: Date) =>
+  new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0, 0);
 
 // parse YYYY-MM-DD como data local (evita UTC)
 function parseLocalDate(iso?: string) {
@@ -19,10 +22,10 @@ function parseLocalDate(iso?: string) {
 }
 
 const STATUS = ['pago', 'aberto', 'cancelado', 'all'] as const;
-type StatusFilter = typeof STATUS[number];
+type StatusFilter = (typeof STATUS)[number];
 
 const PAY = ['pix', 'cartao', 'dinheiro', 'all'] as const;
-type PaymentFilter = typeof PAY[number];
+type PaymentFilter = (typeof PAY)[number];
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('dashboard')
@@ -41,9 +44,9 @@ export class DashboardController {
   ) {
     // período
     const baseFrom = parseLocalDate(fromQ);
-    const baseTo   = parseLocalDate(toQ ?? fromQ); // se não vier "to", usa mesmo dia de "from"
+    const baseTo = parseLocalDate(toQ ?? fromQ); // se não vier "to", usa mesmo dia de "from"
     let from = startOfDay(baseFrom);
-    let to   = endOfDay(baseTo);
+    let to = endOfDay(baseTo);
     // se inverteram as datas, corrige
     if (to < from) [from, to] = [to, from];
 
@@ -59,7 +62,7 @@ export class DashboardController {
 
     return {
       from: from.toISOString().slice(0, 10),
-      to:   new Date(to.getTime() - 1).toISOString().slice(0, 10), // ajusta fim do dia
+      to: new Date(to.getTime() - 1).toISOString().slice(0, 10), // ajusta fim do dia
       filters: { status, payment },
       orders: count,
       revenue: centsToMoney(totalCents),
