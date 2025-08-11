@@ -11,12 +11,15 @@ import { useRouter } from 'next/navigation';
 type Category = 'comida' | 'bebida' | 'sobremesa';
 type Product = { id:number; name:string; price:string; category: Category };
 type CartItem = { productId:number; name:string; unitPrice:string; quantity:number };
+type Payment = 'pix'|'cartao'|'dinheiro';
+type Status = 'pago'|'aberto'|'cancelado';
 
 export default function NewOrderPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [qty, setQty] = useState<Record<number, number>>({});
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [pay, setPay] = useState<'pix'|'cartao'|'dinheiro'>('pix');
+  const [pay, setPay] = useState<Payment>('pix');
+  const [status, setStatus] = useState<Status>('pago'); // << aqui
   const router = useRouter();
 
   useEffect(() => { apiGet<Product[]>('/products').then(setProducts); }, []);
@@ -43,7 +46,7 @@ export default function NewOrderPage() {
   async function submit() {
     if (!cart.length) return;
     const items = cart.map(c => ({ productId: c.productId, quantity: c.quantity }));
-    await apiPost('/orders', { paymentMethod: pay, status: 'pago', items });
+    await apiPost('/orders', { paymentMethod: pay, status, items }); // << aqui
     router.push('/orders');
   }
 
@@ -117,22 +120,47 @@ export default function NewOrderPage() {
           </TableBody>
         </Table>
 
-        <div className="flex items-center gap-3">
-          <span className="text-sm">Pagamento:</span>
-          <Select value={pay} onValueChange={(v) => setPay(v as 'pix'|'cartao'|'dinheiro')}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pix">PIX</SelectItem>
-              <SelectItem value="cartao">Cartão</SelectItem>
-              <SelectItem value="dinheiro">Dinheiro</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="ml-auto text-lg font-semibold">Total: R$ {total}</div>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-sm">Pagamento:</span>
+            <Select value={pay} onValueChange={(v) => setPay(v as Payment)}>
+              <SelectTrigger className="w-40"><SelectValue placeholder="Pagamento" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pix">PIX</SelectItem>
+                <SelectItem value="cartao">Cartão</SelectItem>
+                <SelectItem value="dinheiro">Dinheiro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-sm">Status do pedido:</span>
+            <Select value={status} onValueChange={(v) => setStatus(v as Status)}>
+              <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="aberto">Aberto</SelectItem>
+                <SelectItem value="pago">Pago</SelectItem>
+                <SelectItem value="cancelado">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="ml-auto text-lg font-semibold">Total: R$ {total}</div>
+          </div>
         </div>
 
-        <Button className="w-full" onClick={submit} disabled={!cart.length}>
-          Finalizar pedido
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="outline" className="w-full" onClick={() => {
+            // se houver itens, confirmar descarte
+            if (cart.length > 0 && !confirm('Descartar itens e voltar à lista?')) return;
+            router.push('/orders');
+          }}>
+            Cancelar
+          </Button>
+
+          <Button className="w-full" onClick={submit} disabled={!cart.length}>
+            Finalizar pedido
+          </Button>
+        </div>
+
       </section>
     </main>
   );
