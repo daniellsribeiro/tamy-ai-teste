@@ -15,7 +15,6 @@ Pequeno sistema para bares/restaurantes com **autenticação**, **CRUD de produt
 
 - **Node.js 20+** e **npm**
 - **PostgreSQL 13+** rodando local
-- (Sem Docker)
 
 ---
 

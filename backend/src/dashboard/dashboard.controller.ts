@@ -21,11 +21,8 @@ function parseLocalDate(iso?: string) {
   return new Date(y, (m ?? 1) - 1, d ?? 1);
 }
 
-const STATUS = ['pago', 'aberto', 'cancelado', 'all'] as const;
-type StatusFilter = (typeof STATUS)[number];
-
-const PAY = ['pix', 'cartao', 'dinheiro', 'all'] as const;
-type PaymentFilter = (typeof PAY)[number];
+type StatusFilter = 'pago' | 'aberto' | 'cancelado' | 'all';
+type PaymentFilter = 'pix' | 'cartao' | 'dinheiro' | 'all';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('dashboard')
@@ -52,8 +49,8 @@ export class DashboardController {
 
     // filtros dinâmicos
     const where: FilterQuery<Order> = { createdAt: { $gte: from, $lt: to } };
-    if (status !== 'all') where.status = status as any;
-    if (payment !== 'all') where.paymentMethod = payment as any;
+    if (status !== 'all') where.status = status;
+    if (payment !== 'all') where.paymentMethod = payment;
 
     const orders = await this.orderRepo.find(where);
 
