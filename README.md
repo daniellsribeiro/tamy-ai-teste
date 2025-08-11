@@ -1,3 +1,4 @@
+
 # Tamy AI — Sistema simples de pedidos (NestJS + Next.js)
 
 Pequeno sistema para bares/restaurantes com **autenticação**, **CRUD de produtos (com estoque)**, **pedidos** (itens, pagamento, status) e **dashboard** (faturamento, pedidos e ticket médio) **com filtros**.
@@ -26,12 +27,19 @@ Crie o banco/usuário (ajuste a porta se não for a padrão 5432):
 CREATE DATABASE tamy;
 CREATE USER tamy WITH ENCRYPTED PASSWORD 'tamy';
 GRANT ALL PRIVILEGES ON DATABASE tamy TO tamy;
+```
 
-Dica (Windows): em muitas instalações o Postgres usa porta 5433. Veja no pgAdmin → Properties → Connection → Port e use essa porta no .env.
+**Dica (Windows)**: em muitas instalações o Postgres usa porta 5433. Veja no pgAdmin → Properties → Connection → Port e use essa porta no `.env`.
+
+---
 
 ## 2) Backend
-## 2.1) Variáveis de ambiente
-Crie backend/.env
+
+### 2.1) Variáveis de ambiente
+
+Crie `backend/.env`:
+
+```env
 # PostgreSQL
 DB_HOST=127.0.0.1
 DB_PORT=5432           # use 5433 se seu Postgres estiver nessa porta
@@ -45,111 +53,132 @@ JWT_EXPIRES=24h
 
 # CORS (dev)
 CORS_ORIGIN=http://localhost:3001
+```
 
-## 2.2 Instalar, migrar e rodar
+### 2.2) Instalar, migrar e rodar
 
+```bash
 cd backend
 npm install
 npx mikro-orm migration:up   # cria/atualiza o schema no banco
 npm run start:dev
+```
+
 Se tudo ok, verá algo como:
 
+```
 Nest application successfully started
 MikroORM connected to postgresql://...
-##  2.3 Smoke Test (cURL)
+```
 
+### 2.3) Smoke Test (cURL)
+
+```bash
 # registrar usuário
-curl -X POST http://localhost:3000/auth/register \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Admin","email":"admin@tamy.com","password":"123456"}'
+curl -X POST http://localhost:3000/auth/register   -H 'Content-Type: application/json'   -d '{"name":"Admin","email":"admin@tamy.com","password":"123456"}'
 
 # login (guarde o accessToken)
-curl -X POST http://localhost:3000/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"admin@tamy.com","password":"123456"}'
+curl -X POST http://localhost:3000/auth/login   -H 'Content-Type: application/json'   -d '{"email":"admin@tamy.com","password":"123456"}'
+```
+
 Guarde o token:
 
+```bash
 # Git Bash (Windows) ou macOS/Linux
 export TOKEN='COLE_O_TOKEN_AQUI'
+```
+
 Produtos de exemplo:
 
-curl -X POST http://localhost:3000/products \
-  -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
-  -d '{"name":"X-Burger","price":"25.90","category":"comida","stock":10}'
+```bash
+curl -X POST http://localhost:3000/products   -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN"   -d '{"name":"X-Burger","price":"25.90","category":"comida","stock":10}'
 
-curl -X POST http://localhost:3000/products \
-  -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
-  -d '{"name":"Coca-Cola","price":"6.50","category":"bebida","stock":20}'
+curl -X POST http://localhost:3000/products   -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN"   -d '{"name":"Coca-Cola","price":"6.50","category":"bebida","stock":20}'
 
-curl -X POST http://localhost:3000/products \
-  -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
-  -d '{"name":"Pudim","price":"8.90","category":"sobremesa","stock":8}'
+curl -X POST http://localhost:3000/products   -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN"   -d '{"name":"Pudim","price":"8.90","category":"sobremesa","stock":8}'
+```
+
 Criar um pedido:
 
-curl -X POST http://localhost:3000/orders \
-  -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
-  -d '{"paymentMethod":"pix","status":"pago","items":[{"productId":1,"quantity":1},{"productId":2,"quantity":2}]}'
+```bash
+curl -X POST http://localhost:3000/orders   -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN"   -d '{"paymentMethod":"pix","status":"pago","items":[{"productId":1,"quantity":1},{"productId":2,"quantity":2}]}'
+```
+
 Dashboard (com filtros):
 
-curl "http://localhost:3000/dashboard/summary?from=2025-08-11&to=2025-08-11&status=pago&payment=all" \
-  -H "Authorization: Bearer $TOKEN"
-##  2.4 Regras de Estoque
-Criar pedido: estoque dos produtos é abatido conforme a quantidade dos itens.
+```bash
+curl "http://localhost:3000/dashboard/summary?from=2025-08-11&to=2025-08-11&status=pago&payment=all"   -H "Authorization: Bearer $TOKEN"
+```
 
-Cancelar pedido (status=cancelado): estoque é devolvido.
+### 2.4) Regras de Estoque
 
-Reabrir pedido cancelado (para aberto/pago): estoque é consumido novamente (falha se não houver quantidade suficiente).
+- Criar pedido: estoque dos produtos é abatido conforme a quantidade dos itens.
+- Cancelar pedido (status=cancelado): estoque é devolvido.
+- Reabrir pedido cancelado (para aberto/pago): estoque é consumido novamente (falha se não houver quantidade suficiente).
 
-A lógica roda de forma transacional no OrdersService.update.
+A lógica roda de forma transacional no `OrdersService.update`.
 
-##  3) Frontend
-## 3.1 Variáveis de ambiente
-Crie frontend/.env.local:
+---
 
+## 3) Frontend
 
+### 3.1) Variáveis de ambiente
+
+Crie `frontend/.env.local`:
+
+```env
 NEXT_PUBLIC_API_URL=http://localhost:3000
-##  3.2 Instalar e rodar
+```
 
+### 3.2) Instalar e rodar
+
+```bash
 cd ../frontend
 npm install
 npm run dev -- -p 3001
-Acesse http://localhost:3001:
+```
 
-/register: cadastro
+Acesse **http://localhost:3001**:
 
-/login: autenticação
+- `/register`: cadastro
+- `/login`: autenticação
+- `/products`: CRUD + estoque
+- `/orders/new`: criar pedido (respeita estoque)
+- `/orders`: lista pedidos com ações:
+  - “!” ver itens (Dialog)
+  - ✓ marcar como pago (habilita somente quando “aberto”)
+  - × cancelar (vermelho, desabilitado quando já cancelado)
+- `/dashboard`: filtros (De/Até, Status, Pagamento) + cards (Pedidos, Faturamento, Ticket médio)
 
-/products: CRUD + estoque
-
-/orders/new: criar pedido (respeita estoque)
-
-/orders: lista pedidos com ações:
-
-“!” ver itens (Dialog)
-
-✓ marcar como pago (habilita somente quando “aberto”)
-
-× cancelar (vermelho, desabilitado quando já cancelado)
-
-/dashboard: filtros (De/Até, Status, Pagamento) + cards (Pedidos, Faturamento, Ticket médio)
-
-Componentes do shadcn/ui já estão versionados.
+Componentes do **shadcn/ui** já estão versionados.  
 Se faltar algum durante o desenvolvimento:
 
+```bash
 npx shadcn@latest add dialog select input button badge table card
+```
 
-Scripts úteis
+---
 
-Backend
+## Scripts úteis
+
+**Backend**
+```bash
 npm run start:dev
 npx mikro-orm debug
 npx mikro-orm migration:create
 npx mikro-orm migration:up
+```
 
-Frontend
+**Frontend**
+```bash
 npm run dev -- -p 3001
-Estrutura do Projeto (resumo)
+```
 
+---
+
+## Estrutura do Projeto (resumo)
+
+```
 backend/
   src/
     auth/               # login/registro/me (JWT)
@@ -178,27 +207,38 @@ frontend/
       ui/               # shadcn components
     lib/api.ts
   .env.local
+```
 
-Troubleshooting 
+---
 
-Porta ocupada
-Backend: 3000; Frontend: 3001 (ou use -- -p 3005)
+## Troubleshooting 
+
+**Porta ocupada**
+Backend: 3000; Frontend: 3001 (ou use `-- -p 3005`)  
 Windows (PowerShell):
+```powershell
 netstat -ano | findstr :3000
 taskkill /PID <PID> /F
+```
 
-Next: EPERM .next/trace (Windows)
+**Next: EPERM .next/trace (Windows)**
+```bash
 rmdir /S /Q .next
 rmdir /S /Q .turbo
+```
 
-MikroORM “No entities found”
+**MikroORM “No entities found”**
+```bash
 npx mikro-orm cache:clear
 npx mikro-orm debug
+```
 
-401 no frontend
-Faça login em /login (token salvo em localStorage).
+**401 no frontend**
+Faça login em `/login` (token salvo em localStorage).
 
-Workflow de Branches (usado)
+---
+
+## Workflow de Branches (usado)
 
 Branches por feature:
 - feat/backend-auth, feat/backend-products, feat/backend-orders,
