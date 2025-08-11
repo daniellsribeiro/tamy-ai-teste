@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -15,6 +15,8 @@ const schema = z.object({
   name: z.string().min(2, 'Informe o nome'),
   price: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Use formato 00.00'),
   category: z.enum(['comida', 'bebida', 'sobremesa']),
+  // use number puro + valueAsNumber no register (evita stock: unknown)
+  stock: z.number().int().min(0, 'Estoque não pode ser negativo'),
 });
 export type ProductFormData = z.infer<typeof schema>;
 
@@ -29,45 +31,37 @@ export default function ProductForm({
 }) {
   const router = useRouter();
 
-  // Atalho: ESC para cancelar
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (!confirm('Descartar alterações e voltar?')) return;
-        if (onCancel) {
-          onCancel();
-        } else {
-          router.push('/products');
-        }
-      }
-    };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [onCancel, router]);
-
   const {
     register,
     handleSubmit,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<ProductFormData>({
     resolver: zodResolver(schema),
-    defaultValues: initial,
+    defaultValues: { stock: 0, ...initial },
   });
+
+  const cancel = useCallback(() => {
+    if (isDirty) {
+      const ok = confirm('Deseja realmente cancelar? As alterações não serão salvas.');
+      if (!ok) return;
+    }
+    if (onCancel) onCancel();
+    else router.push('/products');
+  }, [isDirty, onCancel, router]);
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') cancel();
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [cancel]);
 
   async function onSubmit(data: ProductFormData) {
     if (id) await apiPatch(`/products/${id}`, data);
     else await apiPost('/products', data);
     router.push('/products');
-  }
-
-  function cancel() {
-    if (!confirm('Descartar alterações e voltar?')) return;
-    if (onCancel) {
-      onCancel();
-    } else {
-      router.push('/products');
-    }
   }
 
   return (
@@ -90,13 +84,9 @@ export default function ProductForm({
             <label className="text-sm">Categoria</label>
             <Select
               defaultValue={initial?.category}
-              onValueChange={(v) =>
-                setValue('category', v as ProductFormData['category'])
-              }
+              onValueChange={(v) => setValue('category', v as ProductFormData['category'])}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="comida">Comida</SelectItem>
                 <SelectItem value="bebida">Bebida</SelectItem>
@@ -104,6 +94,13 @@ export default function ProductForm({
               </SelectContent>
             </Select>
             <p className="text-xs text-red-600">{errors.category?.message}</p>
+          </div>
+
+          <div>
+            <label className="text-sm">Estoque</label>
+            {/* transforma para número no RHF */}
+            <Input type="number" min={0} {...register('stock', { valueAsNumber: true })} />
+            <p className="text-xs text-red-600">{errors.stock?.message}</p>
           </div>
 
           <div className="flex gap-3">

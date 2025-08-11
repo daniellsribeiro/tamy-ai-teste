@@ -9,7 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { useRouter } from 'next/navigation';
 
 type Category = 'comida' | 'bebida' | 'sobremesa';
-type Product = { id:number; name:string; price:string; category: Category };
+type Product = { id:number; name:string; price:string; category: Category; stock: number };
 type CartItem = { productId:number; name:string; unitPrice:string; quantity:number };
 type Payment = 'pix'|'cartao'|'dinheiro';
 type Status = 'pago'|'aberto'|'cancelado';
@@ -19,18 +19,22 @@ export default function NewOrderPage() {
   const [qty, setQty] = useState<Record<number, number>>({});
   const [cart, setCart] = useState<CartItem[]>([]);
   const [pay, setPay] = useState<Payment>('pix');
-  const [status, setStatus] = useState<Status>('pago'); // << aqui
+  const [status, setStatus] = useState<Status>('pago');
   const router = useRouter();
 
   useEffect(() => { apiGet<Product[]>('/products').then(setProducts); }, []);
 
   function add(p: Product) {
-    const q = Math.max(1, qty[p.id] ?? 1);
+    if (p.stock <= 0) return;
+    const requested = Math.max(1, qty[p.id] ?? 1);
+    const q = Math.min(requested, p.stock); // não passa do estoque
+
     setCart((c) => {
       const i = c.findIndex(ci => ci.productId === p.id);
       if (i >= 0) {
+        const next = Math.min(c[i].quantity + q, p.stock);
         const c2 = [...c];
-        c2[i] = { ...c2[i], quantity: c2[i].quantity + q };
+        c2[i] = { ...c2[i], quantity: next };
         return c2;
       }
       return [...c, { productId: p.id, name: p.name, unitPrice: p.price, quantity: q }];
@@ -46,7 +50,12 @@ export default function NewOrderPage() {
   async function submit() {
     if (!cart.length) return;
     const items = cart.map(c => ({ productId: c.productId, quantity: c.quantity }));
-    await apiPost('/orders', { paymentMethod: pay, status, items }); // << aqui
+    await apiPost('/orders', { paymentMethod: pay, status, items });
+    router.push('/orders');
+  }
+
+  function cancel() {
+    if (cart.length > 0 && !confirm('Deseja realmente cancelar este pedido? Os itens do carrinho serão descartados.')) return;
     router.push('/orders');
   }
 
@@ -61,6 +70,7 @@ export default function NewOrderPage() {
               <TableHead>Nome</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead>Preço</TableHead>
+              <TableHead>Em estoque</TableHead>
               <TableHead>Qtd</TableHead>
               <TableHead></TableHead>
             </TableRow>
@@ -71,16 +81,21 @@ export default function NewOrderPage() {
                 <TableCell>{p.name}</TableCell>
                 <TableCell className="capitalize">{p.category}</TableCell>
                 <TableCell>R$ {p.price}</TableCell>
+                <TableCell>{p.stock}</TableCell>
                 <TableCell className="w-24">
                   <Input
                     type="number"
                     min={1}
-                    value={qty[p.id] ?? 1}
+                    max={p.stock}
+                    value={Math.min(p.stock, qty[p.id] ?? 1)}
                     onChange={(e) => setQty(s => ({ ...s, [p.id]: Number(e.target.value) }))}
+                    disabled={p.stock === 0}
                   />
                 </TableCell>
                 <TableCell>
-                  <Button size="sm" onClick={() => add(p)}>Adicionar</Button>
+                  <Button size="sm" onClick={() => add(p)} disabled={p.stock === 0}>
+                    Adicionar
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -148,19 +163,9 @@ export default function NewOrderPage() {
         </div>
 
         <div className="flex gap-3">
-          <Button variant="outline" className="w-full" onClick={() => {
-            // se houver itens, confirmar descarte
-            if (cart.length > 0 && !confirm('Descartar itens e voltar à lista?')) return;
-            router.push('/orders');
-          }}>
-            Cancelar
-          </Button>
-
-          <Button className="w-full" onClick={submit} disabled={!cart.length}>
-            Finalizar pedido
-          </Button>
+          <Button variant="outline" className="w-full" onClick={cancel}>Cancelar</Button>
+          <Button className="w-full" onClick={submit} disabled={!cart.length}>Finalizar pedido</Button>
         </div>
-
       </section>
     </main>
   );
