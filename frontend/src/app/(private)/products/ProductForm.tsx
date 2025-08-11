@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -20,11 +21,29 @@ export type ProductFormData = z.infer<typeof schema>;
 export default function ProductForm({
   initial,
   id,
+  onCancel,
 }: {
   initial?: Partial<ProductFormData>;
   id?: number;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
+
+  // Atalho: ESC para cancelar
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (!confirm('Descartar alterações e voltar?')) return;
+        if (onCancel) {
+          onCancel();
+        } else {
+          router.push('/products');
+        }
+      }
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onCancel, router]);
 
   const {
     register,
@@ -40,6 +59,15 @@ export default function ProductForm({
     if (id) await apiPatch(`/products/${id}`, data);
     else await apiPost('/products', data);
     router.push('/products');
+  }
+
+  function cancel() {
+    if (!confirm('Descartar alterações e voltar?')) return;
+    if (onCancel) {
+      onCancel();
+    } else {
+      router.push('/products');
+    }
   }
 
   return (
@@ -62,7 +90,9 @@ export default function ProductForm({
             <label className="text-sm">Categoria</label>
             <Select
               defaultValue={initial?.category}
-              onValueChange={(v) => setValue('category', v as ProductFormData['category'])}
+              onValueChange={(v) =>
+                setValue('category', v as ProductFormData['category'])
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione" />
@@ -76,9 +106,14 @@ export default function ProductForm({
             <p className="text-xs text-red-600">{errors.category?.message}</p>
           </div>
 
-          <Button type="submit" disabled={isSubmitting}>
-            {id ? 'Salvar' : 'Criar'}
-          </Button>
+          <div className="flex gap-3">
+            <Button type="button" variant="outline" className="w-full" onClick={cancel}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {id ? 'Salvar' : 'Criar'}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

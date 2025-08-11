@@ -1,12 +1,12 @@
 'use client';
-
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import ProductForm, { ProductFormData } from '../../ProductForm';
 import { apiGet } from '@/lib/api';
 
 export default function EditProduct() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [initial, setInitial] = useState<ProductFormData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +22,7 @@ export default function EditProduct() {
   return (
     <main className="space-y-4">
       <h1 className="text-xl font-semibold">Editar Produto #{id}</h1>
-      <ProductForm id={Number(id)} initial={initial} />
+      <ProductForm id={Number(id)} initial={initial} onCancel={() => router.push('/products')} />
     </main>
   );
 }
