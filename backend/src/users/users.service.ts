@@ -26,8 +26,21 @@ export class UsersService {
     if (exists) throw new ConflictException('E-mail já cadastrado');
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = this.usersRepo.create({ name, email, passwordHash });
-    await this.usersRepo.getEntityManager().persistAndFlush(user);
+    const now = new Date();
+
+    const user = this.usersRepo.create({
+      name,
+      email,
+      passwordHash,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Usa EM via repositório (compatível c/ MikroORM v6)
+    const em = this.usersRepo.getEntityManager();
+    em.persist(user);
+    await em.flush();
+
     return user;
   }
 

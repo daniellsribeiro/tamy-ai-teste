@@ -14,9 +14,9 @@ export class User {
   @Property()
   passwordHash!: string;
 
-  @Property({ onCreate: () => new Date() })
+  @Property()
   createdAt!: Date;
 
-  @Property({ onCreate: () => new Date(), onUpdate: () => new Date() })
+  @Property()
   updatedAt!: Date;
 }
