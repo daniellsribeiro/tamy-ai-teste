@@ -10,7 +10,6 @@ export class Product {
   @Property()
   name!: string;
 
-  // decimal(10,2) no Postgres — use string no TS p/ não perder precisão
   @Property({ type: 'decimal', precision: 10, scale: 2 })
   price!: string;
 

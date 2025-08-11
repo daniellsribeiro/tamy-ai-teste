@@ -17,7 +17,7 @@ export class Order {
   id!: number;
 
   @Property({ type: 'decimal', precision: 10, scale: 2 })
-  total!: string; // "123.45"
+  total!: string;
 
   @Property()
   paymentMethod!: PaymentMethod;
