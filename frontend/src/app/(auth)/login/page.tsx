@@ -34,9 +34,10 @@ export default function LoginPage() {
       const json = await res.json();
       localStorage.setItem('token', json.accessToken);
       router.push('/dashboard');
-    } catch (e: any) {
-      setError(e.message || 'Erro ao logar');
-    }
+    } catch (err: unknown) {
+  const msg = err instanceof Error ? err.message : 'Erro ao logar';
+  setError(msg);
+}
   }
 
   return (
