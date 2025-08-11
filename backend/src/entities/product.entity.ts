@@ -17,6 +17,9 @@ export class Product {
   @Property()
   category!: Categoria;
 
+  @Property({ default: 0 })          
+  stock!: number;   
+
   @Property()
   createdAt!: Date;
 

@@ -4,3 +4,7 @@ dist/
 .next/
 coverage/
 *.log
+frontend/frontend.txt
+frontend/juntar-tudo.js
+backend/backend.txt
+backend/juntar-tudo.cjs

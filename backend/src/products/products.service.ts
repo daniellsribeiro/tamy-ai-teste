@@ -10,11 +10,12 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly repo: EntityRepository<Product>,
-  ) {}
+  ) { }
 
   async create(dto: CreateProductDto) {
     const now = new Date();
-    const product = this.repo.create({ ...dto, createdAt: now, updatedAt: now });
+    const stock = Math.max(0, Number(dto.stock ?? 0));
+    const product = this.repo.create({ ...dto, stock, createdAt: now, updatedAt: now });
     const em = this.repo.getEntityManager();
     em.persist(product);
     await em.flush();
@@ -33,6 +34,7 @@ export class ProductsService {
 
   async update(id: number, dto: UpdateProductDto) {
     const product = await this.findOne(id);
+    if (dto.stock != null) dto.stock = Math.max(0, Number(dto.stock));  // << valida
     Object.assign(product, dto, { updatedAt: new Date() });
     await this.repo.getEntityManager().flush();
     return product;
