@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { EntityRepository } from '@mikro-orm/postgresql';
+import { EntityRepository, EntityManager } from '@mikro-orm/postgresql';
 import { Order } from '../entities/order.entity';
 import { OrderItem } from '../entities/order-item.entity';
 import { Product } from '../entities/product.entity';
@@ -92,12 +92,46 @@ export class OrdersService {
     return order;
   }
 
-  async update(id: number, dto: UpdateOrderDto) {
-    const order = await this.findOne(id);
-    if (dto.paymentMethod) order.paymentMethod = dto.paymentMethod;
-    if (dto.status) order.status = dto.status;
-    order.updatedAt = new Date();
-    await this.orderRepo.getEntityManager().flush();
-    return order;
+ async update(id: number, dto: { status?: 'aberto'|'pago'|'cancelado'; paymentMethod?: 'pix'|'cartao'|'dinheiro' }) {
+    const em = this.orderRepo.getEntityManager();
+
+    return em.transactional(async (tem) => {
+      // carregar pedido + itens + produto (precisamos do stock)
+      const order = await tem.findOne(Order, id, { populate: ['items', 'items.product'] });
+      if (!order) throw new NotFoundException('Order not found');
+
+      const prev = order.status;
+      const next = dto.status ?? prev;
+
+      // Se mudou o status, ajusta estoque conforme a transição
+      if (dto.status && next !== prev) {
+        if (prev !== 'cancelado' && next === 'cancelado') {
+          // Pedido foi cancelado agora -> devolver estoque
+          for (const it of order.items) {
+            it.product.stock += it.quantity;
+          }
+        } else if (prev === 'cancelado' && next !== 'cancelado') {
+          // Pedido “reaberto” (aberto/pago) -> consumir estoque de novo
+          for (const it of order.items) {
+            if (it.product.stock < it.quantity) {
+              throw new BadRequestException(
+                `Estoque insuficiente de ${it.product.name} (disp: ${it.product.stock}, necessário: ${it.quantity})`,
+              );
+            }
+            it.product.stock -= it.quantity;
+          }
+        }
+        order.status = next;
+      }
+
+      if (dto.paymentMethod) {
+        order.paymentMethod = dto.paymentMethod;
+      }
+
+      order.updatedAt = new Date();
+      await tem.flush();
+
+      return order;
+    });
   }
 }
