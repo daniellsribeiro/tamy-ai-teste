@@ -2,11 +2,11 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function Home() {
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   useEffect(() => {
     const token = localStorage.getItem('token');
-    router.replace(token ? '/dashboard' : '/login');
+    if (token) router.replace('/dashboard');
   }, [router]);
-  return null;
+  return <>{children}</>;
 }
