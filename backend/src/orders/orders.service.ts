@@ -17,10 +17,10 @@ function centsToMoney(cents: number) {
 @Injectable()
 export class OrdersService {
   constructor(
-    @InjectRepository(Order)     private readonly orderRepo: EntityRepository<Order>,
-    @InjectRepository(OrderItem) private readonly itemRepo:  EntityRepository<OrderItem>,
-    @InjectRepository(Product)   private readonly prodRepo:  EntityRepository<Product>,
-  ) {}
+    @InjectRepository(Order) private readonly orderRepo: EntityRepository<Order>,
+    @InjectRepository(OrderItem) private readonly itemRepo: EntityRepository<OrderItem>,
+    @InjectRepository(Product) private readonly prodRepo: EntityRepository<Product>,
+  ) { }
 
   async create(dto: CreateOrderDto) {
     if (!dto.items?.length) throw new BadRequestException('Pedido sem itens');
@@ -44,6 +44,11 @@ export class OrdersService {
       const prod = map.get(it.productId);
       if (!prod) throw new BadRequestException(`Produto ${it.productId} não encontrado`);
       if (it.quantity <= 0) throw new BadRequestException('Quantidade inválida');
+
+      if (prod.stock < it.quantity) {
+        throw new BadRequestException(`Estoque insuficiente de ${prod.name} (disp: ${prod.stock})`);
+      }
+      prod.stock -= it.quantity;
 
       const unitCents = toCents(prod.price);
       const lineCents = unitCents * it.quantity;
@@ -90,7 +95,7 @@ export class OrdersService {
   async update(id: number, dto: UpdateOrderDto) {
     const order = await this.findOne(id);
     if (dto.paymentMethod) order.paymentMethod = dto.paymentMethod;
-    if (dto.status)        order.status        = dto.status;
+    if (dto.status) order.status = dto.status;
     order.updatedAt = new Date();
     await this.orderRepo.getEntityManager().flush();
     return order;
